@@ -100,15 +100,15 @@ public class LocationService extends Service {
         if (location == null) return;
 
         //Address Information
-        String addressLine;
-        String streetName;
-        String city;
-        String state;
-        String subAdminArea;
-        String countryName;
-        String countryCode;
-        String postalCode;
-        String knownName;
+        String addressLine = null;
+        String streetName = "";
+        String city = "";
+        String state = "";
+        String subAdminArea = "";
+        String countryName = "";
+        String countryCode = "";
+        String postalCode = "";
+        String knownName = "";
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
             List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
@@ -132,8 +132,20 @@ public class LocationService extends Service {
         values.put(LocationContentProvider.LOCATION_TIME, System.currentTimeMillis());
         values.put(LocationContentProvider.LOCATION_LATITUDE, location.getLatitude());
         values.put(LocationContentProvider.LOCATION_LONGITUDE, location.getLongitude());
+        values.put(LocationContentProvider.LOCATION_ADDRESSLINE, addressLine);
+        values.put(LocationContentProvider.LOCATION_STREETNAME, streetName);
+        values.put(LocationContentProvider.LOCATION_CITY, city);
+        values.put(LocationContentProvider.LOCATION_STATE, state);
+        values.put(LocationContentProvider.LOCATION_SUBADMINAREA, subAdminArea);
+        values.put(LocationContentProvider.LOCATION_COUNTRYCODE, countryCode);
+        values.put(LocationContentProvider.LOCATION_COUNTRYNAME, countryName);
+        values.put(LocationContentProvider.LOCATION_POSTALCODE, postalCode);
+        values.put(LocationContentProvider.LOCATION_KNOWNNAME, knownName);
+
         Uri uri = getContentResolver().insert(LocationContentProvider.CONTENT_URI, values);
-        Log.d(LOG_TAG, "data lan,lon: " + location.getLatitude() + "," + location.getLongitude());
+        Log.d(LOG_TAG, "data lan,lon: " + location.getLatitude() + ";" + location.getLongitude()
+        + ";" + streetName + ";" + city + ";" + state + ";" + subAdminArea + ";" + countryCode
+                + ";" + countryName + ";" + postalCode + ";" + knownName);
         Log.d(LOG_TAG, "inserted new location, uri: " + uri);
     }
 }

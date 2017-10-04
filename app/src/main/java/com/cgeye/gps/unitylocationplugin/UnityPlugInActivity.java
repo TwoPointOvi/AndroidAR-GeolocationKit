@@ -69,6 +69,15 @@ public class UnityPlugInActivity extends UnityPlayerActivity {
                 dto.setTime(cursor.getLong(cursor.getColumnIndex(LocationContentProvider.LOCATION_TIME)));
                 dto.setLongitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LONGITUDE)));
                 dto.setLatitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LATITUDE)));
+                dto.setAddressLine(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_ADDRESSLINE)));
+                dto.setStreetName(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_STREETNAME)));
+                dto.setCity(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_CITY)));
+                dto.setState(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_STATE)));
+                dto.setSubAdminArea(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_SUBADMINAREA)));
+                dto.setCountryCode(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_COUNTRYCODE)));
+                dto.setCountryName(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_COUNTRYNAME)));
+                dto.setPostalCode(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_POSTALCODE)));
+                dto.setKnownName(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_KNOWNNAME)));
                 locationUpdates.add(dto);
             }
             cursor.close();

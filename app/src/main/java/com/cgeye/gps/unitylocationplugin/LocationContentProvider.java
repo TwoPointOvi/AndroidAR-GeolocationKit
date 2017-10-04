@@ -37,7 +37,16 @@ public class LocationContentProvider extends ContentProvider {
     private static final String DB_CREATE = "CREATE TABLE " + TABLE + "(" +
             LOCATION_TIME + " INTEGER PRIMARY KEY, " +
             LOCATION_LATITUDE + " REAL, " +
-            LOCATION_LONGITUDE + " REAL " +
+            LOCATION_LONGITUDE + " REAL, " +
+            LOCATION_ADDRESSLINE + " TEXT, " +
+            LOCATION_STREETNAME + " TEXT, " +
+            LOCATION_CITY + " TEXT, " +
+            LOCATION_STATE + " TEXT, " +
+            LOCATION_SUBADMINAREA + " TEXT, " +
+            LOCATION_COUNTRYCODE + " TEXT, " +
+            LOCATION_COUNTRYNAME + " TEXT, " +
+            LOCATION_POSTALCODE + " TEXT, " +
+            LOCATION_KNOWNNAME + " TEXT " +
             ");";
 
     private static final String AUTHORITY = "cgeye.plugin.provider.store";

@@ -5,9 +5,9 @@
     <uses-permission
         android:name="android.permission.ACCESS_FINE_LOCATION" />
         <!-- android:maxSdkVersion="22" />  TODO:Check for the meaning of a maxsdkVersion for ACCESSFINELOCATION -->
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!--<uses-permission android:name="android.permission.CAMERA" />
 
-    <uses-feature android:name="android.hardware.camera2" />
+    <uses-feature android:name="android.hardware.camera2" />-->
 
     <application
         android:allowBackup="true"
