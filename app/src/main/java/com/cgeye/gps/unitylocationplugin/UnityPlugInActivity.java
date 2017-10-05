@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.location.Location;
 import android.location.LocationProvider;
 import android.os.Build;
 import android.os.Bundle;
@@ -89,12 +90,49 @@ public class UnityPlugInActivity extends UnityPlayerActivity {
         return json;
     }
 
+    public LocationData getFirstLastLocation(String sorting) {
+        Log.d(LOG_TAG, "UnityPluginActivity: getFirstLastLocation " + sorting);
+        Cursor cursor = getContentResolver().query(LocationContentProvider.CONTENT_URI, null,
+                null, null, LocationContentProvider.LOCATION_TIME + sorting);
+
+        LocationData dto = new LocationData();
+        List<LocationData> locationUpdates = new ArrayList<>();
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                dto.setLongitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LONGITUDE)));
+                dto.setLatitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LATITUDE)));
+                locationUpdates.add(dto);
+            }
+            cursor.close();
+        }
+
+        return dto;
+    }
+
+    public LocationData getFirstLocation() {
+        return getFirstLastLocation(" ASC");
+    }
+
+    public LocationData getLastLocation() {
+        return getFirstLastLocation(" DESC");
+    }
+
+    public float distanceBetweenFirstAndLast() {
+        float results[] = new float[3];
+        LocationData firstLocation = getFirstLocation();
+        LocationData lastLocation = getLastLocation();
+
+        Location.distanceBetween(firstLocation.getLatitude(), firstLocation.getLongitude(), lastLocation.getLatitude(), lastLocation.getLongitude(), results);
+
+        return results[0];
+    }
+
     public void deleteLocationsBefore(long time) {
         Log.d(LOG_TAG, "UnityPluginActivity: deleteLocationsBefore " + time + " seconds.");
         int rowsDeleted = getContentResolver().delete(LocationContentProvider.CONTENT_URI,
                 LocationContentProvider.LOCATION_TIME + " <= " + time,
                 null);
-        Log.d(LOG_TAG, "Deleted: " + rowsDeleted + "rows");
+        Log.d(LOG_TAG, "Deleted: " + rowsDeleted + " rows");
     }
 
     @TargetApi(Build.VERSION_CODES.M)
