@@ -1,4 +1,4 @@
-package kalmangps.cgeye.com.kalmangpsmanager.SensorAux;
+package com.cgeye.gps.unitylocationplugin.sensorAux;
 
 /**
  * Created by lezh1k on 2/13/18.

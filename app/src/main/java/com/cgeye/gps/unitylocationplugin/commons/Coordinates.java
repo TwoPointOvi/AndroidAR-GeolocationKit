@@ -1,10 +1,11 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Commons;
-
-import kalmangps.cgeye.com.kalmangpsmanager.Filters.GeoHash;
+package com.cgeye.gps.unitylocationplugin.commons;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+//import kalmangps.cgeye.com.kalmangpsmanager.Filters.GeoHash;
+import com.cgeye.gps.unitylocationplugin.filters.GeoHash;
 
 /**
  * Created by lezh1k on 2/13/18.

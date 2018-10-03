@@ -1,4 +1,4 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Interfaces;
+package com.cgeye.gps.unitylocationplugin.interfaces;
 
 import android.location.Location;
 

@@ -1,152 +1,256 @@
 package com.cgeye.gps.unitylocationplugin;
 
-import android.annotation.TargetApi;
-import android.app.PendingIntent;
-import android.content.Intent;
+import android.Manifest;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.location.Location;
-import android.location.LocationProvider;
-import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
-import com.google.gson.Gson;
+import com.cgeye.gps.unitylocationplugin.commons.Utils;
+import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceInterface;
+import com.cgeye.gps.unitylocationplugin.interfaces.SimpleTempCallback;
+import com.cgeye.gps.unitylocationplugin.services.KalmanLocationService;
+import com.cgeye.gps.unitylocationplugin.services.ServicesHelper;
 import com.unity3d.player.UnityPlayerActivity;
 
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Created by CGEye.
  */
 
-public class UnityPlugInActivity extends UnityPlayerActivity {
-    private static final String LOG_TAG = "AndroidLocationPlugIn";
-    private static final int REQUEST_LOCATION = 1;
-    private static final int LOCATION_REQUEST_CODE = 1010;
-    private Intent locationIntent;
+public class UnityPlugInActivity extends UnityPlayerActivity implements LocationServiceInterface {
+    private static final String TAG = "AndroidLocationPlugIn";
+    List<Location> kalmanLocations = new ArrayList<>();
+    Location firstKalmanLocation;
+    Location lastKalmanLocation;
+
+    KalmanLocationService.Settings defaultSettings =
+            new KalmanLocationService.Settings(Utils.ACCELEROMETER_DEFAULT_DEVIATION,
+                    Utils.GPS_MIN_DISTANCE,
+                    Utils.GPS_MIN_TIME,
+                    Utils.GEOHASH_DEFAULT_PREC,
+                    Utils.GEOHASH_DEFAULT_MIN_POINT_COUNT,
+                    Utils.SENSOR_DEFAULT_FREQ_HZ,
+                    null, false);
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Log.d(LOG_TAG, "UnityPlayerActivity:onCreate() called.");
-        locationIntent = new Intent(getApplicationContext(), LocationService.class);
+    protected void onCreate(Bundle bundle) {
+        super.onCreate(bundle);
+        Log.d(TAG, "UnityPlayerActivity:onCreate() called.");
+        ServicesHelper.addLocationServiceInterface(this);
+        Log.d(TAG, "UnityPlayerActivity:onCreate() Location service started.");
+
+        /*Start kalman service location
+        ServicesHelper.getLocationService(this, value -> {
+            if (value.IsRunning()) {
+                return;
+            }
+            value.stop();
+            KalmanLocationService.Settings settings =
+                    new KalmanLocationService.Settings(Utils.ACCELEROMETER_DEFAULT_DEVIATION,
+                            Utils.GPS_MIN_DISTANCE,
+                            Utils.GPS_MIN_TIME,
+                            Utils.GEOHASH_DEFAULT_PREC,
+                            Utils.GEOHASH_DEFAULT_MIN_POINT_COUNT,
+                            Utils.SENSOR_DEFAULT_FREQ_HZ, null, false);
+            value.reset(settings); //here you can adjust your filter behavior
+            value.start();
+        }); */
+
+        ServicesHelper.getLocationService(this, new SimpleTempCallback<KalmanLocationService>() {
+            @Override
+            public void onCall(KalmanLocationService value) {
+                if (value.IsRunning()) {
+                    return;
+                }
+                value.stop();
+                value.reset(defaultSettings); //here you can adjust your filter behavior
+                value.start();
+            }
+        });
+
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(LOG_TAG, "UnityPluginActivity:onDestroy() called.");
-        stopLocationService();
+        Log.d(TAG, "UnityPlayerActivity:onDestroy().");
+        ServicesHelper.removeLocationServiceInterface(this);
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "UnityPlayerActivity:onPause() Location service stopped.");
+        /*stop kalman location service
+        ServicesHelper.getLocationService(this, value -> {
+            value.stop();
+        });*/
 
-    public void startLocationService() {
-        Log.d(LOG_TAG, "UnityPluginActivity:startLocationService() called.");
-        PendingIntent pendingIntent = createPendingResult(REQUEST_LOCATION, new Intent(), PendingIntent.FLAG_UPDATE_CURRENT);
-        locationIntent.putExtra(LocationService.PENDING_INTENT, pendingIntent);
-        startService(locationIntent);
-    }
-
-    public void stopLocationService() {
-        Log.d(LOG_TAG, "UnityPluginActivity:stopLocationService() called.");
-        stopService(locationIntent);
-    }
-
-    public String getLocationsJson(long time) {
-        Log.d(LOG_TAG, "UnityPluginActivity: getLocationsJson after " + time + " seconds.");
-        //Cursor cursor = getContentResolver().query(LocationContentProvider.CONTENT_URI, null,
-        //        LocationContentProvider.LOCATION_TIME + " >= " + time,
-        //        null, null);
-        Cursor cursor = getContentResolver().query(LocationContentProvider.CONTENT_URI, null,
-                null, null, LocationContentProvider.LOCATION_TIME + " DESC");
-
-        List<LocationData> locationUpdates = new ArrayList<>();
-        if (cursor != null) {
-            if (cursor.moveToFirst()) {
-                LocationData dto = new LocationData();
-                dto.setTime(cursor.getLong(cursor.getColumnIndex(LocationContentProvider.LOCATION_TIME)));
-                dto.setLongitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LONGITUDE)));
-                dto.setLatitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LATITUDE)));
-                dto.setAddressLine(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_ADDRESSLINE)));
-                dto.setStreetName(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_STREETNAME)));
-                dto.setCity(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_CITY)));
-                dto.setState(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_STATE)));
-                dto.setSubAdminArea(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_SUBADMINAREA)));
-                dto.setCountryCode(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_COUNTRYCODE)));
-                dto.setCountryName(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_COUNTRYNAME)));
-                dto.setPostalCode(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_POSTALCODE)));
-                dto.setKnownName(cursor.getString(cursor.getColumnIndex(LocationContentProvider.LOCATION_KNOWNNAME)));
-                locationUpdates.add(dto);
+        ServicesHelper.getLocationService(this, new SimpleTempCallback<KalmanLocationService>() {
+            @Override
+            public void onCall(KalmanLocationService value) {
+                value.stop();
             }
-            cursor.close();
-        }
-
-        String json = new Gson().toJson(locationUpdates);
-
-        Log.d(LOG_TAG, "Json: " + json);
-        return json;
+        });
     }
 
-    public LocationData getFirstLastLocation(String sorting) {
-        Log.d(LOG_TAG, "UnityPluginActivity: getFirstLastLocation " + sorting);
-        Cursor cursor = getContentResolver().query(LocationContentProvider.CONTENT_URI, null,
-                null, null, LocationContentProvider.LOCATION_TIME + sorting);
-
-        LocationData dto = new LocationData();
-        List<LocationData> locationUpdates = new ArrayList<>();
-        if (cursor != null) {
-            if (cursor.moveToFirst()) {
-                dto.setLongitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LONGITUDE)));
-                dto.setLatitude(cursor.getDouble(cursor.getColumnIndex(LocationContentProvider.LOCATION_LATITUDE)));
-                locationUpdates.add(dto);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "UnityPlayerActivity:onResume() Location service started.");
+        /*Start kalman service location
+        ServicesHelper.getLocationService(this, value -> {
+            if (value.IsRunning()) {
+                return;
             }
-            cursor.close();
+            value.stop();
+            KalmanLocationService.Settings settings =
+                    new KalmanLocationService.Settings(Utils.ACCELEROMETER_DEFAULT_DEVIATION,
+                            Utils.GPS_MIN_DISTANCE,
+                            Utils.GPS_MIN_TIME,
+                            Utils.GEOHASH_DEFAULT_PREC,
+                            Utils.GEOHASH_DEFAULT_MIN_POINT_COUNT,
+                            Utils.SENSOR_DEFAULT_FREQ_HZ, null, false);
+            value.reset(settings); //here you can adjust your filter behavior
+            value.start();
+        }); */
+
+        ServicesHelper.getLocationService(this, new SimpleTempCallback<KalmanLocationService>() {
+            @Override
+            public void onCall(KalmanLocationService value) {
+                if (value.IsRunning()) {
+                    return;
+                }
+                value.stop();
+                value.reset(defaultSettings); //here you can adjust your filter behavior
+                value.start();
+            }
+        });
+    }
+
+    @Override
+    public void locationChanged(Location location) {
+        if (firstKalmanLocation == null) {
+            firstKalmanLocation = location;
+        }
+        lastKalmanLocation = location;
+        Log.d(TAG, "UnityPlayerActivity: Location updated: " +
+                location.getLatitude() + ", " + location.getLongitude());
+
+        kalmanLocations.add(lastKalmanLocation);
+    }
+
+    public double[] getLastKalmanLocation() {
+        double[] loc = new double[3];
+        //Log.d(LOG_TAG, "Returning Kalman Location");
+        if (lastKalmanLocation != null) {
+            //Log.d(LOG_TAG, "Returning available location");
+            loc[0] = lastKalmanLocation.getLatitude();
+            loc[1] = lastKalmanLocation.getLongitude();
+            loc[2] = lastKalmanLocation.getAltitude();
+        }
+        return loc;
+    }
+
+    public void getKalmanLocations() {
+
+    }
+
+    public float[] distanceBetweenLocations(double lat, double lon, double alt) {
+        float distance = 0;
+        float angleBetweenPoints;
+        float angleBetweenPointsA;
+        // [0] -> distance        [1] -> angle
+        float[] info = new float[3];
+
+        Location loc = new Location("provider");
+        loc.setLatitude(lat);
+        loc.setLongitude(lon);
+        loc.setAltitude(alt);
+
+        if (lastKalmanLocation != null) {
+            distance = lastKalmanLocation.distanceTo(loc);
         }
 
-        return dto;
+        angleBetweenPointsA = lastKalmanLocation.bearingTo(loc);
+        angleBetweenPoints = bearingBetweenLocations(lastKalmanLocation, loc);
+        Log.d(TAG, "UnityPlayerActivity:distanceBetweenLocations() bearingAndroid: " + angleBetweenPointsA
+                        + " bearingCalc: " + angleBetweenPoints);
+
+        info[0] = distance;
+        info[1] = angleBetweenPoints;
+        info[2] = angleBetweenPointsA;
+
+        return info;
     }
 
-    public LocationData getFirstLocation() {
-        return getFirstLastLocation(" ASC");
+    public double[] latlonToUTMCoordinates(double lat, double lon) {
+        double[] info = new double[4];
+        LatLonToUTM converterObj = new LatLonToUTM();
+        LatLonToUTM converterUser = new LatLonToUTM();
+
+        converterObj.convertLatLonToUTM(lat, lon);
+        converterUser.convertLatLonToUTM(lastKalmanLocation.getLatitude(), lastKalmanLocation.getLongitude());
+
+        info[0] = converterObj.returnEasting();
+        info[1] = converterObj.returnNorthing();
+        info[2] = converterUser.returnEasting();
+        info[3] = converterUser.returnNorthing();
+
+        return info;
     }
 
-    public LocationData getLastLocation() {
-        return getFirstLastLocation(" DESC");
-    }
+    public float bearingBetweenLocations(Location loc1, Location loc2) {
+        float angleBetweenPoints;
 
-    public float distanceBetweenFirstAndLast() {
-        float results[] = new float[3];
-        LocationData firstLocation = getFirstLocation();
-        LocationData lastLocation = getLastLocation();
+        //Transform latitude and longitude to radians
+        double loc1Lat, loc1Lon, loc2Lat, loc2Lon;
+        loc1Lat = Math.toRadians(loc1.getLatitude());
+        loc1Lon = Math.toRadians(loc1.getLongitude());
+        loc2Lat = Math.toRadians(loc2.getLatitude());
+        loc2Lon = Math.toRadians(loc2.getLongitude());
 
-        Location.distanceBetween(firstLocation.getLatitude(), firstLocation.getLongitude(), lastLocation.getLatitude(), lastLocation.getLongitude(), results);
+        double dLon = loc2Lon - loc1Lon;
+        double y = Math.sin(dLon) * Math.cos(loc2Lon);
+        double x = Math.cos(loc1Lat) * Math.sin(loc2Lat) - Math.sin(loc1Lat) * Math.cos(loc2Lat) * Math.cos(dLon);
+        angleBetweenPoints = (float) Math.toDegrees((Math.atan2(y, x)));
+        angleBetweenPoints = (angleBetweenPoints + 360) % 360;
 
-        return results[0];
-    }
-
-    public void deleteLocationsBefore(long time) {
-        Log.d(LOG_TAG, "UnityPluginActivity: deleteLocationsBefore " + time + " seconds.");
-        int rowsDeleted = getContentResolver().delete(LocationContentProvider.CONTENT_URI,
-                LocationContentProvider.LOCATION_TIME + " <= " + time,
-                null);
-        Log.d(LOG_TAG, "Deleted: " + rowsDeleted + " rows");
-    }
-
-    @TargetApi(Build.VERSION_CODES.M)
-    private boolean hasPermission() {
-        //return PackageManager.PERMISSION_GRANTED == PermissionChecker.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_FINE_LOCATION);
-        return PackageManager.PERMISSION_GRANTED == checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        return angleBetweenPoints;
     }
 
 
-    @TargetApi(Build.VERSION_CODES.M)
-    private void checkPermissions() {
-        if (!hasPermission()) {
-            requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
+
+    public void checkPermissions() {
+        String[] interestedPermissions;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+            interestedPermissions = new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                    //Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    //Manifest.permission.READ_EXTERNAL_STORAGE
+            };
+        } else {
+            interestedPermissions = new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                    //Manifest.permission.WRITE_EXTERNAL_STORAGE
+            };
+        }
+
+        ArrayList<String> lstPermissions = new ArrayList<>(interestedPermissions.length);
+        for (String perm : interestedPermissions) {
+            if (ActivityCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                lstPermissions.add(perm);
+            }
+        }
+
+        if (!lstPermissions.isEmpty()) {
+            ActivityCompat.requestPermissions(this, lstPermissions.toArray(new String[0]),
+                    100);
         }
     }
-
 }

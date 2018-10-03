@@ -1,6 +1,7 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Interfaces;
+package com.cgeye.gps.unitylocationplugin.interfaces;
 
-import kalmangps.cgeye.com.kalmangpsmanager.Services.KalmanLocationService.ServiceStatus;
+//import kalmangps.cgeye.com.kalmangpsmanager.Services.KalmanLocationService.ServiceStatus;
+import com.cgeye.gps.unitylocationplugin.services.KalmanLocationService.ServiceStatus;
 
 /**
  * Created by lezh1k on 2/13/18.

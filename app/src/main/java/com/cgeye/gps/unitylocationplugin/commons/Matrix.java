@@ -1,4 +1,4 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Commons;
+package com.cgeye.gps.unitylocationplugin.commons;
 /**
  * Created by lezh1k on 2/13/18.
  */

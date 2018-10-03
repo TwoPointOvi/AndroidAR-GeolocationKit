@@ -1,4 +1,4 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Interfaces;
+package com.cgeye.gps.unitylocationplugin.interfaces;
 
 /**
  * Created by lezh1k on 2/13/18.

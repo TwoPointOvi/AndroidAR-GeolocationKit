@@ -1,6 +1,7 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Filters;
+package com.cgeye.gps.unitylocationplugin.filters;
 
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.Matrix;
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.Matrix;
+import com.cgeye.gps.unitylocationplugin.commons.Matrix;
 
 /**
  * Created by lezh1k on 2/13/18.

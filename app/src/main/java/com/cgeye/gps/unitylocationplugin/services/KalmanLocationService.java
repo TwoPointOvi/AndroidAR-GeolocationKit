@@ -1,4 +1,4 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Services;
+package com.cgeye.gps.unitylocationplugin.services;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -25,19 +25,30 @@ import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.Coordinates;
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.GeoPoint;
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.SensorGpsDataItem;
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.Utils;
-import kalmangps.cgeye.com.kalmangpsmanager.Filters.GPSAccKalmanFilter;
-import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.ILogger;
-import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceInterface;
-import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceStatusInterface;
-import kalmangps.cgeye.com.kalmangpsmanager.Loggers.GeohashRTFilter;
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.Coordinates;
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.GeoPoint;
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.SensorGpsDataItem;
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.Utils;
+//import kalmangps.cgeye.com.kalmangpsmanager.Filters.GPSAccKalmanFilter;
+//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.ILogger;
+//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceInterface;
+//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceStatusInterface;
+//import kalmangps.cgeye.com.kalmangpsmanager.Loggers.GeohashRTFilter;
+
+import com.cgeye.gps.unitylocationplugin.commons.Coordinates;
+import com.cgeye.gps.unitylocationplugin.commons.GeoPoint;
+import com.cgeye.gps.unitylocationplugin.commons.SensorGpsDataItem;
+import com.cgeye.gps.unitylocationplugin.commons.Utils;
+import com.cgeye.gps.unitylocationplugin.filters.GPSAccKalmanFilter;
+import com.cgeye.gps.unitylocationplugin.interfaces.ILogger;
+import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceInterface;
+import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceStatusInterface;
+import com.cgeye.gps.unitylocationplugin.loggers.GeohashRTFilter;
 
 public class KalmanLocationService extends Service
         implements SensorEventListener, LocationListener, GpsStatus.Listener {
@@ -184,7 +195,7 @@ public class KalmanLocationService extends Service
                     Utils.GPS_MIN_DISTANCE, Utils.GPS_MIN_TIME,
                     Utils.GEOHASH_DEFAULT_PREC, Utils.GEOHASH_DEFAULT_MIN_POINT_COUNT,
                     Utils.SENSOR_DEFAULT_FREQ_HZ,
-                    null, true);
+                    null, false);
 
     private Settings m_settings;
     private LocationManager m_locationManager;
@@ -477,6 +488,45 @@ public class KalmanLocationService extends Service
         }
     }
 
+
+    boolean avrg = false;
+    private Queue<SensorGpsDataItem> dataForAverageSensorData =
+            new LinkedList<>();
+
+    private SensorGpsDataItem averageData(int size) {
+        double northAbsAcc = 0;
+        double eastAbsAcc = 0;
+        double upAbsAcc = 0;
+
+        long now = android.os.SystemClock.elapsedRealtimeNanos();
+        long nowMs = Utils.nano2milli(now);
+
+        for (int i = 0; i < size; i++) {
+            SensorGpsDataItem sdiTemp = dataForAverageSensorData.poll();
+            if (sdiTemp != null) {
+                northAbsAcc += sdiTemp.getAbsNorthAcc();
+                eastAbsAcc += sdiTemp.getAbsEastAcc();
+                upAbsAcc += sdiTemp.getAbsUpAcc();
+            }
+        }
+        northAbsAcc /= size;
+        eastAbsAcc /= size;
+        upAbsAcc /= size;
+
+        SensorGpsDataItem sdi = new SensorGpsDataItem(nowMs,
+                SensorGpsDataItem.NOT_INITIALIZED,
+                SensorGpsDataItem.NOT_INITIALIZED,
+                SensorGpsDataItem.NOT_INITIALIZED,
+                northAbsAcc,
+                eastAbsAcc,
+                upAbsAcc,
+                SensorGpsDataItem.NOT_INITIALIZED,
+                SensorGpsDataItem.NOT_INITIALIZED,
+                SensorGpsDataItem.NOT_INITIALIZED,
+                SensorGpsDataItem.NOT_INITIALIZED);
+        return sdi;
+    }
+
     /*SensorEventListener methods implementation*/
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -513,6 +563,20 @@ public class KalmanLocationService extends Service
                         SensorGpsDataItem.NOT_INITIALIZED,
                         SensorGpsDataItem.NOT_INITIALIZED,
                         m_magneticDeclination);
+
+                /*Changes:
+                SensorGpsDataItem avrgDataItem = null;
+                dataForAverageSensorData.add(sdi);
+                if (dataForAverageSensorData.size() >= 9) {
+                    avrgDataItem = averageData(dataForAverageSensorData.size());
+                    avrg = true;
+                }
+
+                if (avrg && avrgDataItem != null) {
+                    m_sensorDataQueue.add(avrgDataItem);
+                    avrg = false;
+                }
+                */
                 m_sensorDataQueue.add(sdi);
                 break;
             case Sensor.TYPE_ROTATION_VECTOR:
@@ -532,7 +596,7 @@ public class KalmanLocationService extends Service
     public void onLocationChanged(Location loc) {
 
         if (loc == null) return;
-        if (m_settings.filterMockGpsCoordinates && loc.isFromMockProvider()) return;
+        //if (m_settings.filterMockGpsCoordinates && loc.isFromMockProvider()) return; MOCKUP
 
         double x, y, xVel, yVel, posDev, course, speed;
         long timeStamp;

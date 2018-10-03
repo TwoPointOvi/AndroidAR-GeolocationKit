@@ -1,4 +1,4 @@
-package kalmangps.cgeye.com.kalmangpsmanager.SensorAux;
+package com.cgeye.gps.unitylocationplugin.sensorAux;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;

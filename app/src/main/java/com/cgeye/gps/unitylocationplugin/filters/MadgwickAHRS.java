@@ -1,4 +1,4 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Filters;
+package com.cgeye.gps.unitylocationplugin.filters;
 
 /**
  * Created by lezh1k on 2/13/18.

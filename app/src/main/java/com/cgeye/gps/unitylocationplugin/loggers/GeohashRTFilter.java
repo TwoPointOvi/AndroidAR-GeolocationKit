@@ -1,16 +1,24 @@
-package kalmangps.cgeye.com.kalmangpsmanager.Loggers;
+package com.cgeye.gps.unitylocationplugin.loggers;
 
 import android.location.Location;
-
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.Coordinates;
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.GeoPoint;
-import kalmangps.cgeye.com.kalmangpsmanager.Commons.Utils;
-import kalmangps.cgeye.com.kalmangpsmanager.Filters.GeoHash;
-import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.ILogger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.Coordinates;
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.GeoPoint;
+//import kalmangps.cgeye.com.kalmangpsmanager.Commons.Utils;
+//import kalmangps.cgeye.com.kalmangpsmanager.Filters.GeoHash;
+//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.ILogger;
+
+import com.cgeye.gps.unitylocationplugin.commons.Coordinates;
+import com.cgeye.gps.unitylocationplugin.commons.GeoPoint;
+import com.cgeye.gps.unitylocationplugin.commons.Utils;
+import com.cgeye.gps.unitylocationplugin.filters.GeoHash;
+import com.cgeye.gps.unitylocationplugin.interfaces.ILogger;
+
+
 
 /**
  * Created by lezh1k on 2/13/18.
