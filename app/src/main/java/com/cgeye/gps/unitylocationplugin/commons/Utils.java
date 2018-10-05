@@ -1,7 +1,7 @@
 package com.cgeye.gps.unitylocationplugin.commons;
 
 /**
- * Created by lezh1k on 2/13/18.
+ * Created by CGEye on 2/13/18.
  */
 
 public class Utils {
@@ -16,6 +16,7 @@ public class Utils {
     public static final int SENSOR_DEFAULT_FREQ_HZ = 10;
     public static final int GEOHASH_DEFAULT_PREC = 8;
     public static final int GEOHASH_DEFAULT_MIN_POINT_COUNT = 2;
+    public static final boolean USE_GPS_SPEED = false;
     //!!
 
     public enum LogMessageType {

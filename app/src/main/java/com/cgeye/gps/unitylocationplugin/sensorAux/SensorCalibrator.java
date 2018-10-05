@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by lezh1k on 2/13/18.
+ * Created by CGEye on 2/13/18.
  */
 
 public class SensorCalibrator implements SensorEventListener {

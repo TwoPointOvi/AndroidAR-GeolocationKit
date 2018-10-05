@@ -9,17 +9,13 @@ import android.os.IBinder;
 import java.util.ArrayList;
 import java.util.List;
 
-//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceInterface;
-//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceStatusInterface;
-//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.SimpleTempCallback;
-
 import com.cgeye.gps.unitylocationplugin.commons.Utils;
 import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceInterface;
 import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceStatusInterface;
 import com.cgeye.gps.unitylocationplugin.interfaces.SimpleTempCallback;
 
 /**
- * Created by lezh1k on 2/13/18.
+ * Created by CGEye on 2/13/18.
  */
 
 public class ServicesHelper {

@@ -2,7 +2,7 @@ package com.cgeye.gps.unitylocationplugin.interfaces;
 
 
 /**
- * Created by lezh1k on 2/26/18.
+ * Created by CGEye on 2/26/18.
  */
 
 public interface ILogger {

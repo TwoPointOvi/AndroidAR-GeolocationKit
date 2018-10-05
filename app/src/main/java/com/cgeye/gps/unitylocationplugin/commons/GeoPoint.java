@@ -1,7 +1,7 @@
 package com.cgeye.gps.unitylocationplugin.commons;
 
 /**
- * Created by lezh1k on 2/13/18.
+ * Created by CGEye on 2/13/18.
  */
 
 public class GeoPoint {

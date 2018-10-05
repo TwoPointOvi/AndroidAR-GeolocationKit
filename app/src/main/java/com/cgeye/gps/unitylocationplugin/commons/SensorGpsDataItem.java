@@ -3,7 +3,7 @@ package com.cgeye.gps.unitylocationplugin.commons;
 import android.support.annotation.NonNull;
 
 /**
- * Created by lezh1k on 2/13/18.
+ * Created by CGEye on 2/13/18.
  */
 
 public class SensorGpsDataItem implements Comparable<SensorGpsDataItem> {

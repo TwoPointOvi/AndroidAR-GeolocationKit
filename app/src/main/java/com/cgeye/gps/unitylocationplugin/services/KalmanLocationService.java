@@ -30,16 +30,6 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.PriorityBlockingQueue;
 
-//import kalmangps.cgeye.com.kalmangpsmanager.Commons.Coordinates;
-//import kalmangps.cgeye.com.kalmangpsmanager.Commons.GeoPoint;
-//import kalmangps.cgeye.com.kalmangpsmanager.Commons.SensorGpsDataItem;
-//import kalmangps.cgeye.com.kalmangpsmanager.Commons.Utils;
-//import kalmangps.cgeye.com.kalmangpsmanager.Filters.GPSAccKalmanFilter;
-//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.ILogger;
-//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceInterface;
-//import kalmangps.cgeye.com.kalmangpsmanager.Interfaces.LocationServiceStatusInterface;
-//import kalmangps.cgeye.com.kalmangpsmanager.Loggers.GeohashRTFilter;
-
 import com.cgeye.gps.unitylocationplugin.commons.Coordinates;
 import com.cgeye.gps.unitylocationplugin.commons.GeoPoint;
 import com.cgeye.gps.unitylocationplugin.commons.SensorGpsDataItem;
@@ -50,6 +40,10 @@ import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceInterface;
 import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceStatusInterface;
 import com.cgeye.gps.unitylocationplugin.loggers.GeohashRTFilter;
 
+/**
+ * Created by CGEye on 2/13/18.
+ */
+
 public class KalmanLocationService extends Service
         implements SensorEventListener, LocationListener, GpsStatus.Listener {
 
@@ -57,6 +51,7 @@ public class KalmanLocationService extends Service
         private double accelerationDeviation;
         private int gpsMinDistance;
         private int gpsMinTime;
+        private boolean useGpsSpeed;
         private int geoHashPrecision;
         private int geoHashMinPointCount;
         private int sensorFfequencyHz;
@@ -75,6 +70,26 @@ public class KalmanLocationService extends Service
             this.accelerationDeviation = accelerationDeviation;
             this.gpsMinDistance = gpsMinDistance;
             this.gpsMinTime = gpsMinTime;
+            this.geoHashPrecision = geoHashPrecision;
+            this.geoHashMinPointCount = geoHashMinPointCount;
+            this.sensorFfequencyHz = sensorFfequencyHz;
+            this.logger = logger;
+            this.filterMockGpsCoordinates = filterMockGpsCoordinates;
+        }
+
+        public Settings(double accelerationDeviation,
+                        int gpsMinDistance,
+                        int gpsMinTime,
+                        boolean useGpsSpeed,
+                        int geoHashPrecision,
+                        int geoHashMinPointCount,
+                        int sensorFfequencyHz,
+                        ILogger logger,
+                        boolean filterMockGpsCoordinates) {
+            this.accelerationDeviation = accelerationDeviation;
+            this.gpsMinDistance = gpsMinDistance;
+            this.gpsMinTime = gpsMinTime;
+            this.useGpsSpeed = useGpsSpeed;
             this.geoHashPrecision = geoHashPrecision;
             this.geoHashMinPointCount = geoHashMinPointCount;
             this.sensorFfequencyHz = sensorFfequencyHz;
@@ -193,6 +208,13 @@ public class KalmanLocationService extends Service
     public static Settings defaultSettings =
             new Settings(Utils.ACCELEROMETER_DEFAULT_DEVIATION,
                     Utils.GPS_MIN_DISTANCE, Utils.GPS_MIN_TIME,
+                    Utils.GEOHASH_DEFAULT_PREC, Utils.GEOHASH_DEFAULT_MIN_POINT_COUNT,
+                    Utils.SENSOR_DEFAULT_FREQ_HZ,
+                    null, false);
+
+    public static Settings defaultSett =
+            new Settings(Utils.ACCELEROMETER_DEFAULT_DEVIATION,
+                    Utils.GPS_MIN_DISTANCE, Utils.GPS_MIN_TIME, Utils.USE_GPS_SPEED,
                     Utils.GEOHASH_DEFAULT_PREC, Utils.GEOHASH_DEFAULT_MIN_POINT_COUNT,
                     Utils.SENSOR_DEFAULT_FREQ_HZ,
                     null, false);
@@ -632,6 +654,15 @@ public class KalmanLocationService extends Service
                     timeStamp, x, y, speed, course, m_settings.accelerationDeviation, posDev);
             m_kalmanFilter = new GPSAccKalmanFilter(
                     false, //todo move to settings
+                    Coordinates.longitudeToMeters(x),
+                    Coordinates.latitudeToMeters(y),
+                    xVel,
+                    yVel,
+                    m_settings.accelerationDeviation,
+                    posDev,
+                    timeStamp);
+            m_kalmanFilter = new GPSAccKalmanFilter(
+                    Utils.USE_GPS_SPEED, //todo move to settings
                     Coordinates.longitudeToMeters(x),
                     Coordinates.latitudeToMeters(y),
                     xVel,
