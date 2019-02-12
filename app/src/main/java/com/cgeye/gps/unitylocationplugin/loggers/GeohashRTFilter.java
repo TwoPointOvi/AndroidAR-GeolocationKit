@@ -40,9 +40,13 @@ public class GeohashRTFilter {
 
     private boolean isFirstCoordinate = true;
     private List<Location> m_geoFilteredTrack;
+    private Location lastGeoFilteredLocation;
 
     public List<Location> getGeoFilteredTrack() {
         return m_geoFilteredTrack;
+    }
+    public Location getLastGeoFilteredLocation() {
+        return lastGeoFilteredLocation;
     }
 
     private int m_geohashPrecision;
@@ -159,6 +163,8 @@ public class GeohashRTFilter {
                 laLoc.setLongitude(lastApprovedGeoPoint.Longitude);
                 laLoc.setAltitude(loc.getAltitude()); //hack.
                 laLoc.setTime(loc.getTime()); //hack2
+                //Added
+                lastGeoFilteredLocation = laLoc;
                 m_geoFilteredTrack.add(laLoc);
                 currentGeoPoint.Latitude = currentGeoPoint.Longitude = 0.0;
             }

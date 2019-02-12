@@ -14,9 +14,10 @@ public class Utils {
     public static final int GPS_MIN_TIME = 1000;
     public static final int GPS_MIN_DISTANCE = 0;
     public static final int SENSOR_DEFAULT_FREQ_HZ = 10;
-    public static final int GEOHASH_DEFAULT_PREC = 8;
+    public static final int GEOHASH_DEFAULT_PREC = 3;
     public static final int GEOHASH_DEFAULT_MIN_POINT_COUNT = 2;
     public static final boolean USE_GPS_SPEED = false;
+    public static final int IMU_DATA_WINDOW = 9;
     //!!
 
     public enum LogMessageType {

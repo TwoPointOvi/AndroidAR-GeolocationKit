@@ -32,6 +32,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 
 import com.cgeye.gps.unitylocationplugin.commons.Coordinates;
 import com.cgeye.gps.unitylocationplugin.commons.GeoPoint;
+import com.cgeye.gps.unitylocationplugin.commons.RawSensorDataItem;
 import com.cgeye.gps.unitylocationplugin.commons.SensorGpsDataItem;
 import com.cgeye.gps.unitylocationplugin.commons.Utils;
 import com.cgeye.gps.unitylocationplugin.filters.GPSAccKalmanFilter;
@@ -512,7 +513,7 @@ public class KalmanLocationService extends Service
 
 
     boolean avrg = false;
-    private Queue<SensorGpsDataItem> dataForAverageSensorData =
+    private Queue<RawSensorDataItem> dataForAverageSensorData =
             new LinkedList<>();
 
     private SensorGpsDataItem averageData(int size) {
@@ -524,11 +525,11 @@ public class KalmanLocationService extends Service
         long nowMs = Utils.nano2milli(now);
 
         for (int i = 0; i < size; i++) {
-            SensorGpsDataItem sdiTemp = dataForAverageSensorData.poll();
-            if (sdiTemp != null) {
-                northAbsAcc += sdiTemp.getAbsNorthAcc();
-                eastAbsAcc += sdiTemp.getAbsEastAcc();
-                upAbsAcc += sdiTemp.getAbsUpAcc();
+            RawSensorDataItem rsdiTemp = dataForAverageSensorData.poll();
+            if (rsdiTemp != null) {
+                northAbsAcc += rsdiTemp.getNorth();
+                eastAbsAcc += rsdiTemp.getEast();
+                upAbsAcc += rsdiTemp.getUp();
             }
         }
         northAbsAcc /= size;
@@ -545,7 +546,9 @@ public class KalmanLocationService extends Service
                 SensorGpsDataItem.NOT_INITIALIZED,
                 SensorGpsDataItem.NOT_INITIALIZED,
                 SensorGpsDataItem.NOT_INITIALIZED,
-                SensorGpsDataItem.NOT_INITIALIZED);
+                SensorGpsDataItem.NOT_INITIALIZED,
+                m_magneticDeclination);
+
         return sdi;
     }
 
@@ -569,9 +572,12 @@ public class KalmanLocationService extends Service
                         nowMs, absAcceleration[east], absAcceleration[north], absAcceleration[up]);
                 log2File(logStr);
 
+                //Log.d("ACC_TAG", logStr);
+
                 if (m_kalmanFilter == null) {
                     break;
                 }
+
 
                 SensorGpsDataItem sdi = new SensorGpsDataItem(nowMs,
                         SensorGpsDataItem.NOT_INITIALIZED,
@@ -587,9 +593,13 @@ public class KalmanLocationService extends Service
                         m_magneticDeclination);
 
                 /*Changes:
+                RawSensorDataItem rsdi = new RawSensorDataItem(absAcceleration[north],
+                        absAcceleration[east],
+                        absAcceleration[up]);
+
                 SensorGpsDataItem avrgDataItem = null;
-                dataForAverageSensorData.add(sdi);
-                if (dataForAverageSensorData.size() >= 9) {
+                dataForAverageSensorData.add(rsdi);
+                if (dataForAverageSensorData.size() >= Utils.IMU_DATA_WINDOW) {
                     avrgDataItem = averageData(dataForAverageSensorData.size());
                     avrg = true;
                 }
@@ -598,8 +608,8 @@ public class KalmanLocationService extends Service
                     m_sensorDataQueue.add(avrgDataItem);
                     avrg = false;
                 }
-                */
-                m_sensorDataQueue.add(sdi);
+
+                */m_sensorDataQueue.add(sdi);
                 break;
             case Sensor.TYPE_ROTATION_VECTOR:
                 SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
@@ -653,7 +663,7 @@ public class KalmanLocationService extends Service
                     Utils.LogMessageType.KALMAN_ALLOC.ordinal(),
                     timeStamp, x, y, speed, course, m_settings.accelerationDeviation, posDev);
             m_kalmanFilter = new GPSAccKalmanFilter(
-                    false, //todo move to settings
+                    Utils.USE_GPS_SPEED,
                     Coordinates.longitudeToMeters(x),
                     Coordinates.latitudeToMeters(y),
                     xVel,
@@ -661,15 +671,16 @@ public class KalmanLocationService extends Service
                     m_settings.accelerationDeviation,
                     posDev,
                     timeStamp);
+            /*
             m_kalmanFilter = new GPSAccKalmanFilter(
-                    Utils.USE_GPS_SPEED, //todo move to settings
+                    Utils.USE_GPS_SPEED,
                     Coordinates.longitudeToMeters(x),
                     Coordinates.latitudeToMeters(y),
                     xVel,
                     yVel,
                     m_settings.accelerationDeviation,
                     posDev,
-                    timeStamp);
+                    timeStamp);*/
             return;
         }
 

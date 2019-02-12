@@ -43,24 +43,6 @@ public class SensorGpsDataItem implements Comparable<SensorGpsDataItem> {
         this.absEastAcc = absEastAcc * Math.cos(declination) - absNorthAcc * Math.sin(declination);
     }
 
-    public SensorGpsDataItem(double timestamp,
-                             double gpsLat, double gpsLon, double gpsAlt,
-                             double absNorthAcc, double absEastAcc, double absUpAcc,
-                             double speed, double course,
-                             double posErr, double velErr) {
-        this.timestamp = timestamp;
-        this.gpsLat = gpsLat;
-        this.gpsLon = gpsLon;
-        this.gpsAlt = gpsAlt;
-        this.absNorthAcc = absNorthAcc;
-        this.absEastAcc = absEastAcc;
-        this.absUpAcc = absUpAcc;
-        this.speed = speed;
-        this.course = course;
-        this.posErr = posErr;
-        this.velErr = velErr;
-    }
-
     public double getTimestamp() {
         return timestamp;
     }

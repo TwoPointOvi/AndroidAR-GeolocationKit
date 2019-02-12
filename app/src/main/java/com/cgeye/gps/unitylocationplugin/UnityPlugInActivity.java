@@ -10,6 +10,7 @@ import android.util.Log;
 import com.cgeye.gps.unitylocationplugin.commons.Utils;
 import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceInterface;
 import com.cgeye.gps.unitylocationplugin.interfaces.SimpleTempCallback;
+import com.cgeye.gps.unitylocationplugin.loggers.GeohashRTFilter;
 import com.cgeye.gps.unitylocationplugin.services.KalmanLocationService;
 import com.cgeye.gps.unitylocationplugin.services.ServicesHelper;
 import com.unity3d.player.UnityPlayerActivity;
@@ -26,6 +27,7 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
     List<Location> kalmanLocations = new ArrayList<>();
     Location firstKalmanLocation;
     Location lastKalmanLocation;
+    GeohashRTFilter geohashRTFilter;
 
     KalmanLocationService.Settings defaultSettings =
             new KalmanLocationService.Settings(Utils.ACCELEROMETER_DEFAULT_DEVIATION,
@@ -59,6 +61,9 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
             value.reset(settings); //here you can adjust your filter behavior
             value.start();
         }); */
+        //Add the filter for filter
+        geohashRTFilter = new GeohashRTFilter(Utils.GEOHASH_DEFAULT_PREC,
+                Utils.GEOHASH_DEFAULT_MIN_POINT_COUNT);
 
         ServicesHelper.getLocationService(this, new SimpleTempCallback<KalmanLocationService>() {
             @Override
@@ -96,6 +101,7 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
                 value.stop();
             }
         });
+        geohashRTFilter.stop();
     }
 
     @Override
@@ -130,6 +136,7 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
                 value.start();
             }
         });
+        geohashRTFilter.reset(null);
     }
 
     @Override
@@ -142,6 +149,19 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
                 location.getLatitude() + ", " + location.getLongitude());
 
         kalmanLocations.add(lastKalmanLocation);
+        geohashRTFilter.filter(lastKalmanLocation);
+    }
+
+    public double[] getLastFilteredLocation() {
+        double[] loc = new double[3];
+        if (geohashRTFilter != null) {
+            loc[0] = geohashRTFilter.getLastGeoFilteredLocation().getLatitude();
+            loc[1] = geohashRTFilter.getLastGeoFilteredLocation().getLongitude();
+            loc[2] = geohashRTFilter.getLastGeoFilteredLocation().getAltitude();
+            Log.d("Filtered Loc", Double.toString(loc[0]) + ',' +
+                    Double.toString(loc[1]) + ',' + Double.toString(loc[2]));
+        }
+        return loc;
     }
 
     public double[] getLastKalmanLocation() {
