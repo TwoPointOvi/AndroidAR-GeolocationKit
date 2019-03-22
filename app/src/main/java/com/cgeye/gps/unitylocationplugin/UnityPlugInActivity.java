@@ -3,6 +3,7 @@ package com.cgeye.gps.unitylocationplugin;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -165,19 +166,29 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
     }
 
     public double[] getLastKalmanLocation() {
-        double[] loc = new double[3];
+        double[] loc = new double[5];
         //Log.d(LOG_TAG, "Returning Kalman Location");
         if (lastKalmanLocation != null) {
             //Log.d(LOG_TAG, "Returning available location");
             loc[0] = lastKalmanLocation.getLatitude();
             loc[1] = lastKalmanLocation.getLongitude();
             loc[2] = lastKalmanLocation.getAltitude();
+            loc[3] = (double)lastKalmanLocation.getBearing();
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                loc[4] = (double)lastKalmanLocation.getBearingAccuracyDegrees();
+            } else {
+                loc[4] = 0;
+            }
         }
         return loc;
     }
 
-    public void getKalmanLocations() {
+    public float[] getMagnetometerData() {
+        float[] magData = new float[2];
+        magData[0] = ServicesHelper.getLocationService().magAccValue;
+        magData[1] = ServicesHelper.getLocationService().magAccStatus;
 
+        return magData;
     }
 
     public float[] distanceBetweenLocations(double lat, double lon, double alt) {
@@ -206,6 +217,19 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
         info[2] = angleBetweenPointsA;
 
         return info;
+    }
+
+    public float distanceBetweenCoordinates(double lat1, double lon1, double alt1, double lat2, double lon2, double alt2) {
+        Location loc1 = new Location ("provider");
+        loc1.setLatitude(lat1);
+        loc1.setLongitude(lon1);
+        loc1.setAltitude(alt1);
+        Location loc2 = new Location ("provider");
+        loc2.setLatitude(lat2);
+        loc2.setLongitude(lon2);
+        loc2.setAltitude(alt2);
+
+        return loc1.distanceTo(loc2);
     }
 
     public double[] latlonToUTMCoordinates(double lat, double lon) {

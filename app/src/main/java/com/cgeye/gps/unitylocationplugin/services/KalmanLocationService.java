@@ -243,6 +243,7 @@ public class KalmanLocationService extends Service
     private static int[] sensorTypes = {
             Sensor.TYPE_LINEAR_ACCELERATION,
             Sensor.TYPE_ROTATION_VECTOR,
+            Sensor.TYPE_MAGNETIC_FIELD,
     };
 
     private float[] rotationMatrix = new float[16];
@@ -250,6 +251,10 @@ public class KalmanLocationService extends Service
     private float[] absAcceleration = new float[4];
     private float[] linearAcceleration = new float[4];
     //!
+
+    //Magnetometer values
+    public int magAccValue = 0;
+    public int magAccStatus = 0;
 
     private Queue<SensorGpsDataItem> m_sensorDataQueue =
             new PriorityBlockingQueue<>();
@@ -615,12 +620,22 @@ public class KalmanLocationService extends Service
                 SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
                 android.opengl.Matrix.invertM(rotationMatrixInv, 0, rotationMatrix, 0);
                 break;
+
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                magAccValue = event.accuracy;
+                break;
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         /*do nothing*/
+        //Check for changes in magnetic fields
+        switch (sensor.getType()) {
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                magAccStatus = accuracy;
+                break;
+        }
     }
 
     /*LocationListener methods implementation*/
