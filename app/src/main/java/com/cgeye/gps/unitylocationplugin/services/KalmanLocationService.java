@@ -24,22 +24,24 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.PriorityBlockingQueue;
-
 import com.cgeye.gps.unitylocationplugin.commons.Coordinates;
 import com.cgeye.gps.unitylocationplugin.commons.GeoPoint;
 import com.cgeye.gps.unitylocationplugin.commons.RawSensorDataItem;
 import com.cgeye.gps.unitylocationplugin.commons.SensorGpsDataItem;
 import com.cgeye.gps.unitylocationplugin.commons.Utils;
 import com.cgeye.gps.unitylocationplugin.filters.GPSAccKalmanFilter;
+import com.cgeye.gps.unitylocationplugin.filters.LowPassFilter;
 import com.cgeye.gps.unitylocationplugin.interfaces.ILogger;
 import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceInterface;
 import com.cgeye.gps.unitylocationplugin.interfaces.LocationServiceStatusInterface;
 import com.cgeye.gps.unitylocationplugin.loggers.GeohashRTFilter;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * Created by CGEye on 2/13/18.
@@ -244,12 +246,33 @@ public class KalmanLocationService extends Service
             Sensor.TYPE_LINEAR_ACCELERATION,
             Sensor.TYPE_ROTATION_VECTOR,
             Sensor.TYPE_MAGNETIC_FIELD,
+            Sensor.TYPE_ACCELEROMETER,
+            Sensor.TYPE_GRAVITY,
+            Sensor.TYPE_GYROSCOPE,
     };
 
     private float[] rotationMatrix = new float[16];
     private float[] rotationMatrixInv = new float[16];
     private float[] absAcceleration = new float[4];
     private float[] linearAcceleration = new float[4];
+
+    private float[] rotationVectorMatrix = new float[9];
+    public float[] compassValues = new float[3];
+    public float[] smoothedCompassValues = new float[3];
+    public float[] compassDegreesValues = new float[3];
+    private float[] rotationMatrixOrientation = new float[9];
+    private float[] inclinationMatrixOrientation = new float[9];
+    private float[] gravityVector = new float[3];
+    private float[] geomagnetic = new float[3];
+    private float[] smoothed = new float[3];
+    public float[] orientationMagNoth = new float[3];
+    public float[] lastOrientationMagNorth = new float[3];
+    private float gyroThreshold = 0.2f;
+    private int gyroNReadings = 5;
+    private Queue lastNGyroReadings = new LinkedList();
+    public float[] orientationResults = new float[3];
+    public float[] accelerometerData = new float[3];
+    public float[] gyroData = new float[3];
     //!
 
     //Magnetometer values
@@ -614,19 +637,153 @@ public class KalmanLocationService extends Service
                     avrg = false;
                 }
 
-                */m_sensorDataQueue.add(sdi);
+                */
+                m_sensorDataQueue.add(sdi);
                 break;
             case Sensor.TYPE_ROTATION_VECTOR:
                 SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
                 android.opengl.Matrix.invertM(rotationMatrixInv, 0, rotationMatrix, 0);
+
+                SensorManager.getRotationMatrixFromVector(rotationVectorMatrix, event.values);
+                SensorManager.getOrientation(rotationVectorMatrix, compassValues);
+                smoothedCompassValues = LowPassFilter.filter(compassValues, smoothedCompassValues);
                 break;
 
             case Sensor.TYPE_MAGNETIC_FIELD:
                 magAccValue = event.accuracy;
+                float[] magneticData = new float[3];
+                System.arraycopy(event.values, 0, magneticData, 0, 3);
+                smoothed = LowPassFilter.filter(magneticData, geomagnetic);
+                System.arraycopy(smoothed, 0, geomagnetic, 0, 3);
                 break;
+
+            case Sensor.TYPE_ACCELEROMETER:
+                //float[] accelerometerData = new float[3];
+                System.arraycopy(event.values, 0, accelerometerData, 0, 3);
+                smoothed = LowPassFilter.filter(accelerometerData, gravityVector);
+                System.arraycopy(smoothed, 0, gravityVector, 0, 3);
+                break;
+
+            case Sensor.TYPE_GRAVITY:
+                // Use gravity to avoid movement of device
+                /*
+                System.arraycopy(event.values, 0, accelerometerData, 0, 3);
+                smoothed = LowPassFilter.filter(accelerometerData, gravityVector);
+                System.arraycopy(smoothed, 0, gravityVector, 0, 3);*/
+                break;
+
+            case Sensor.TYPE_GYROSCOPE:
+                //gyroDataFunction(event);
+                System.arraycopy(event.values, 0, gyroData, 0, 3);
+                break;
+        }
+
+        if (SensorManager.getRotationMatrix(rotationMatrixOrientation, inclinationMatrixOrientation,
+                gravityVector, geomagnetic)) {
+            if (lastNGyroReadings.size() > gyroNReadings) {
+                lastNGyroReadings.remove();
+            }
+            lastNGyroReadings.add(gyroData);
+            float gyroMagnitude = calculateGyroAverageMagnitude();
+
+            if (gyroMagnitude < gyroThreshold) {
+                orientationResults = SensorManager.getOrientation(rotationMatrixOrientation, orientationMagNoth);
+                lastOrientationMagNorth = orientationResults;
+            }
         }
     }
 
+    private float calculateGyroAverageMagnitude() {
+        Iterator iterator = lastNGyroReadings.iterator();
+        float gyroMagnitude = 0.0f;
+        while (iterator.hasNext()) {
+            float[] gyroInfo = (float[]) iterator.next();
+            gyroMagnitude += (Math.pow(gyroInfo[0], 2) + Math.pow(gyroInfo[1], 2) + Math.pow(gyroInfo[2], 2));
+        }
+        gyroMagnitude = gyroMagnitude / lastNGyroReadings.size();
+        return gyroMagnitude;
+    }
+
+    private static final float EPSILON = 0.000000001f;
+    private boolean initState = true;
+    private float timestamp;
+    private static final float NS2S = 1.0f / 1000000000.0f;
+    //angular speeds from gyro
+    private float[] gyro = new float[3];
+    //rotation matrix from gyro data
+    private float[] gyroMatrix = new float[9];
+    //orientation angles from gyro matrix
+    private float[] gyroOrientation = new float[3];
+
+    private float[] getRotationVectorFromGyro(float[] gyroValues, float timeFactor) {
+        float[] normValues = new float[3];
+
+        // Calculate the angular speed of the sample
+        float omegaMagnitude = (float) Math.sqrt(gyroValues[0] * gyroValues[0] +
+                        gyroValues[1] * gyroValues[1] +
+                        gyroValues[2] * gyroValues[2]);
+
+        // Normalize the rotation vector if it's big enough to get the axis
+        if(omegaMagnitude > EPSILON) {
+            normValues[0] = gyroValues[0] / omegaMagnitude;
+            normValues[1] = gyroValues[1] / omegaMagnitude;
+            normValues[2] = gyroValues[2] / omegaMagnitude;
+        }
+
+        // Integrate around this axis with the angular speed by the timestep
+        // in order to get a delta rotation from this sample over the timestep
+        // We will convert this axis-angle representation of the delta rotation
+        // into a quaternion before turning it into the rotation matrix.
+        float thetaOverTwo = omegaMagnitude * timeFactor;
+        float sinThetaOverTwo = (float)Math.sin(thetaOverTwo);
+        float cosThetaOverTwo = (float)Math.cos(thetaOverTwo);
+        float[] deltaRotationVector = new float[4];
+        deltaRotationVector[0] = sinThetaOverTwo * normValues[0];
+        deltaRotationVector[1] = sinThetaOverTwo * normValues[1];
+        deltaRotationVector[2] = sinThetaOverTwo * normValues[2];
+        deltaRotationVector[3] = cosThetaOverTwo;
+
+        return deltaRotationVector;
+    }
+    /* CONT
+    private void gyroDataFunction(SensorEvent event) {
+        if (orientationMagNoth == null) {
+            return;
+        }
+
+        //initialisation of the gyroscope based rotation matrix
+        if(initState) {
+            float[] initMatrix = new float[9];
+            initMatrix = getRotationMatrixFromOrientation(accMagOrientation);
+            float[] test = new float[3];
+            SensorManager.getOrientation(initMatrix, test);
+            gyroMatrix = matrixMultiplication(gyroMatrix, initMatrix);
+            initState = false;
+        }
+
+        // copy the new gyro values into the gyro array
+        // convert the raw gyro data into a rotation vector
+        float[] deltaVector = new float[4];
+        if(timestamp != 0) {
+            final float dT = (event.timestamp - timestamp) * NS2S;
+            System.arraycopy(event.values, 0, gyro, 0, 3);
+            deltaVector = getRotationVectorFromGyro(gyro, dT / 2.0f);
+        }
+
+        // measurement done, save current time for next interval
+        timestamp = event.timestamp;
+
+        // convert rotation vector into rotation matrix
+        float[] deltaMatrix = new float[9];
+        SensorManager.getRotationMatrixFromVector(deltaMatrix, deltaVector);
+
+        // apply the new rotation interval on the gyroscope based rotation matrix
+        gyroMatrix = matrixMultiplication(gyroMatrix, deltaMatrix);
+
+        // get the gyroscope based orientation from the rotation matrix
+        SensorManager.getOrientation(gyroMatrix, gyroOrientation);
+    }
+    */
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         /*do nothing*/
@@ -655,6 +812,7 @@ public class KalmanLocationService extends Service
         yVel = speed * Math.sin(course);
         posDev = loc.getAccuracy();
         timeStamp = Utils.nano2milli(loc.getElapsedRealtimeNanos());
+
         //WARNING!!! here should be speed accuracy, but loc.hasSpeedAccuracy()
         // and loc.getSpeedAccuracyMetersPerSecond() requares API 26
         double velErr = loc.getAccuracy() * 0.1;

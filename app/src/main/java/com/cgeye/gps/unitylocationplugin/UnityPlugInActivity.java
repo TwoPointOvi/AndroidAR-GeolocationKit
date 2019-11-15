@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.health.ServiceHealthStats;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
@@ -26,7 +27,7 @@ import java.util.List;
 public class UnityPlugInActivity extends UnityPlayerActivity implements LocationServiceInterface {
     private static final String TAG = "AndroidLocationPlugIn";
     List<Location> kalmanLocations = new ArrayList<>();
-    Location firstKalmanLocation;
+    Location previousKalmanLocation;
     Location lastKalmanLocation;
     GeohashRTFilter geohashRTFilter;
 
@@ -142,9 +143,7 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
 
     @Override
     public void locationChanged(Location location) {
-        if (firstKalmanLocation == null) {
-            firstKalmanLocation = location;
-        }
+        previousKalmanLocation = lastKalmanLocation;
         lastKalmanLocation = location;
         Log.d(TAG, "UnityPlayerActivity: Location updated: " +
                 location.getLatitude() + ", " + location.getLongitude());
@@ -166,7 +165,7 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
     }
 
     public double[] getLastKalmanLocation() {
-        double[] loc = new double[5];
+        double[] loc = new double[6];
         //Log.d(LOG_TAG, "Returning Kalman Location");
         if (lastKalmanLocation != null) {
             //Log.d(LOG_TAG, "Returning available location");
@@ -174,10 +173,15 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
             loc[1] = lastKalmanLocation.getLongitude();
             loc[2] = lastKalmanLocation.getAltitude();
             loc[3] = (double)lastKalmanLocation.getBearing();
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                loc[4] = (double)lastKalmanLocation.getBearingAccuracyDegrees();
+            if (lastKalmanLocation != null && previousKalmanLocation != null && lastKalmanLocation != previousKalmanLocation) {
+                loc[4] = (double) previousKalmanLocation.bearingTo(lastKalmanLocation);
             } else {
-                loc[4] = 0;
+                loc[4] = 0.0;
+            }
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                loc[5] = (double)lastKalmanLocation.getBearingAccuracyDegrees();
+            } else {
+                loc[5] = 0.0;
             }
         }
         return loc;
@@ -189,6 +193,23 @@ public class UnityPlugInActivity extends UnityPlayerActivity implements Location
         magData[1] = ServicesHelper.getLocationService().magAccStatus;
 
         return magData;
+    }
+
+    public float[] getOrientationData() {
+        return ServicesHelper.getLocationService().orientationMagNoth;
+    }
+
+    public float[] getGyroData() {
+        return ServicesHelper.getLocationService().gyroData;
+    }
+
+    public float[] getAccelerometerData() {
+        return ServicesHelper.getLocationService().accelerometerData;
+    }
+
+    public float[] getOrientationResults() {
+        //return  ServicesHelper.getLocationService().orientationResults;
+        return  ServicesHelper.getLocationService().smoothedCompassValues;
     }
 
     public float[] distanceBetweenLocations(double lat, double lon, double alt) {
